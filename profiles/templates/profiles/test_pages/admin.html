@@ -1,0 +1,38 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-success">
+            <h4>✅ Доступ разрешен!</h4>
+            <p>Вы успешно прошли проверку LDAP и получили доступ к административной панели.</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">⚙️ Административная панель</h3>
+            </div>
+            <div class="card-body">
+                <h5>Системное администрирование</h5>
+                <p>Доступные функции:</p>
+                <ul>
+                    <li>Управление пользователями</li>
+                    <li>Настройки системы</li>
+                    <li>Мониторинг активности</li>
+                    <li>Отчеты и аналитика</li>
+                </ul>
+                
+                <div class="alert alert-warning mt-3">
+                    <strong>Внимание!</strong> Эта панель доступна только администраторам и персоналу.
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{% url 'ldap_test_tool' %}" class="btn btn-outline-danger">
+                        ← Вернуться к тестированию
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

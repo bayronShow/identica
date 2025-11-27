@@ -2,14 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.utils import timezone
-from django.http import JsonResponse
-from django.db.models import Count, Q
-import json
-from datetime import datetime, timedelta
-from .models import StudentProfile, Subscription, Website, Report, Announcement, AnalyticsData
-from .forms import StudentProfileForm, ReportForm, AnnouncementForm, RoleManagementForm, BulkEmailForm, AnalyticsFilterForm
-from .decorators import monitor_required, curator_required, teacher_required
+from .models import StudentProfile, Subscription, Website
+from .forms import StudentProfileForm, SubscriptionForm
+from .ldap_utils import get_user_accessible_websites, check_website_access
 
 def home(request):
     return render(request, 'profiles/home.html')
@@ -21,16 +16,9 @@ def profile_view(request):
     except StudentProfile.DoesNotExist:
         student_profile = StudentProfile.objects.create(user=request.user)
     
-    # Только активные подписки
     subscriptions = Subscription.objects.filter(
         student=student_profile, 
-        status='active'
-    ).select_related('website')
-    
-    # Ожидающие подтверждения
-    pending_subscriptions = Subscription.objects.filter(
-        student=student_profile,
-        status='pending'
+        is_active=True
     ).select_related('website')
     
     if request.method == 'POST':
@@ -57,7 +45,6 @@ def profile_view(request):
         'profile': student_profile,
         'form': form,
         'subscriptions': subscriptions,
-        'pending_subscriptions': pending_subscriptions,
         'active_tab': 'profile',
         'profile_complete': profile_complete
     })
@@ -73,86 +60,33 @@ def manage_subscriptions(request):
         messages.warning(request, 'Пожалуйста, заполните ваш профиль перед управлением подписками.')
         return redirect('profile')
     
-    # Получаем только те сайты, к которым пользователь имеет доступ
-    available_websites = Website.objects.filter(is_active=True).select_related('category')
-    accessible_websites = [w for w in available_websites if w.can_access(student_profile)]
-    
-    # Получаем текущие подписки пользователя
     current_subscriptions = Subscription.objects.filter(
-        student=student_profile
+        student=student_profile, 
+        is_active=True
     ).values_list('website_id', flat=True)
-    
-    # Активные подписки
-    subscriptions_active = Subscription.objects.filter(
-        student=student_profile,
-        status='active'
-    ).select_related('website')
-    
-    # Ожидающие подтверждения
-    subscriptions_pending = Subscription.objects.filter(
-        student=student_profile,
-        status='pending'
-    ).select_related('website')
     
     if request.method == 'POST':
         selected_websites = request.POST.getlist('websites')
         
         with transaction.atomic():
-            # Удаляем отмененные подписки
-            removed_subscriptions = Subscription.objects.filter(
-                student=student_profile
-            ).exclude(website_id__in=selected_websites)
-            removed_count = removed_subscriptions.count()
-            removed_subscriptions.delete()
-            
-            # Добавляем новые подписки
-            added_count = 0
-            pending_count = 0
+            Subscription.objects.filter(student=student_profile).update(is_active=False)
             
             for website_id in selected_websites:
                 website = Website.objects.get(id=website_id)
-                
-                # Проверяем доступ
-                if not website.can_access(student_profile):
-                    messages.error(request, f'У вас нет доступа к сайту "{website.name}"')
-                    continue
-                
-                # Проверяем, нет ли уже подписки
                 subscription, created = Subscription.objects.get_or_create(
                     student=student_profile,
-                    website=website
+                    website=website,
+                    defaults={'is_active': True}
                 )
-                
-                if created:
-                    # Устанавливаем статус в зависимости от типа подписки
-                    if website.requires_approval:
-                        subscription.status = 'pending'
-                        pending_count += 1
-                        messages.info(request, f'Запрос на подписку "{website.name}" отправлен на подтверждение.')
-                    else:
-                        subscription.status = 'active'
-                        added_count += 1
-                        messages.success(request, f'✅ Подписка на "{website.name}" активирована!')
-                    
+                if not created:
+                    subscription.is_active = True
                     subscription.save()
-            
-            if added_count > 0 or removed_count > 0 or pending_count > 0:
-                success_msg = f'Подписки обновлены: '
-                parts = []
-                if added_count > 0:
-                    parts.append(f'добавлено {added_count}')
-                if pending_count > 0:
-                    parts.append(f'ожидают подтверждения {pending_count}')
-                if removed_count > 0:
-                    parts.append(f'удалено {removed_count}')
-                
-                messages.success(request, success_msg + ', '.join(parts) + '.')
         
-        return redirect('manage_subscriptions')
+        messages.success(request, 'Подписки успешно обновлены!')
+        return redirect('profile')
     
-    # Группируем доступные сайты по категориям
     websites_by_category = {}
-    for website in accessible_websites:
+    for website in Website.objects.filter(is_active=True).select_related('category'):
         category_name = website.category.name
         if category_name not in websites_by_category:
             websites_by_category[category_name] = []
@@ -161,9 +95,6 @@ def manage_subscriptions(request):
     return render(request, 'profiles/subscriptions.html', {
         'websites_by_category': websites_by_category,
         'current_subscriptions': list(current_subscriptions),
-        'subscriptions_active': subscriptions_active,
-        'subscriptions_pending': subscriptions_pending,
-        'websites_available': len(accessible_websites),
         'active_tab': 'subscriptions'
     })
 
@@ -174,24 +105,10 @@ def dashboard(request):
     except StudentProfile.DoesNotExist:
         student_profile = StudentProfile.objects.create(user=request.user)
     
-    # Активные подписки
     subscriptions = Subscription.objects.filter(
         student=student_profile, 
-        status='active'
+        is_active=True
     ).select_related('website')
-    
-    # Ожидающие подтверждения
-    pending_subscriptions = Subscription.objects.filter(
-        student=student_profile,
-        status='pending'
-    ).select_related('website')
-    
-    # Проверяем истекшие подписки
-    expired_count = Subscription.objects.filter(
-        student=student_profile,
-        status='active',
-        expires_at__lt=timezone.now()
-    ).update(status='expired')
     
     profile_complete = all([
         student_profile.student_id,
@@ -203,295 +120,197 @@ def dashboard(request):
     return render(request, 'profiles/dashboard.html', {
         'profile': student_profile,
         'subscriptions': subscriptions,
-        'pending_subscriptions': pending_subscriptions,
         'active_tab': 'dashboard',
         'profile_complete': profile_complete
     })
 
-# Новые представления для разных ролей
 @login_required
-@monitor_required
 def monitor_dashboard(request):
-    profile = get_object_or_404(StudentProfile, user=request.user)
-    students_in_group = profile.get_students_in_group()
-    
-    # Статистика для старосты
-    group_stats = {
-        'total_students': students_in_group.count(),
-        'active_subscriptions': Subscription.objects.filter(
-            student__in=students_in_group,
-            status='active'
-        ).count(),
-        'pending_subscriptions': Subscription.objects.filter(
-            student__in=students_in_group,
-            status='pending'
-        ).count(),
-        'completed_profiles': students_in_group.filter(
-            Q(student_id__isnull=False) & 
-            Q(faculty__isnull=False) & 
-            Q(course__isnull=False) & 
-            Q(group__isnull=False)
-        ).count(),
-    }
-    
-    # Последние активности в группе
-    recent_announcements = Announcement.objects.filter(
-        Q(target='all') | Q(target='students') | Q(target='group', target_group=profile.group),
-        is_active=True
-    ).order_by('-created_at')[:5]
-    
-    return render(request, 'profiles/monitor_dashboard.html', {
-        'profile': profile,
-        'students': students_in_group,
-        'group_stats': group_stats,
-        'recent_announcements': recent_announcements,
-        'active_tab': 'monitor'
-    })
-
-@login_required
-@curator_required
-def curator_dashboard(request):
-    profile = get_object_or_404(StudentProfile, user=request.user)
-    students_in_course = profile.get_students_in_course()
-    
-    # Статистика для куратора
-    course_stats = {
-        'total_students': students_in_course.count(),
-        'groups_count': students_in_course.values('group').distinct().count(),
-        'active_monitors': students_in_course.filter(role='monitor').count(),
-    }
-    
-    # Форма для создания объявлений
-    announcement_form = AnnouncementForm()
-    
-    if request.method == 'POST' and 'create_announcement' in request.POST:
-        announcement_form = AnnouncementForm(request.POST)
-        if announcement_form.is_valid():
-            announcement = announcement_form.save(commit=False)
-            announcement.created_by = profile
-            announcement.save()
-            messages.success(request, 'Объявление успешно создано!')
-            return redirect('curator_dashboard')
-    
-    # Управление ролями в курсе
-    role_form = RoleManagementForm()
-    role_form.fields['user'].queryset = students_in_course
-    
-    if request.method == 'POST' and 'change_role' in request.POST:
-        role_form = RoleManagementForm(request.POST)
-        if role_form.is_valid():
-            student_profile = role_form.cleaned_data['user']
-            new_role = role_form.cleaned_data['new_role']
-            old_role = student_profile.role
-            student_profile.role = new_role
-            student_profile.save()
-            messages.success(request, f'Роль {student_profile.user.username} изменена с {old_role} на {new_role}')
-            return redirect('curator_dashboard')
-    
-    return render(request, 'profiles/curator_dashboard.html', {
-        'profile': profile,
-        'students': students_in_course,
-        'course_stats': course_stats,
-        'announcement_form': announcement_form,
-        'role_form': role_form,
-        'active_tab': 'curator'
-    })
-
-@login_required
-@teacher_required
-def teacher_dashboard(request):
-    profile = get_object_or_404(StudentProfile, user=request.user)
-    all_students = profile.get_all_students()
-    
-    # Формы для преподавателя
-    report_form = ReportForm()
-    analytics_form = AnalyticsFilterForm()
-    bulk_email_form = BulkEmailForm()
-    
-    # Статистика для преподавателя
-    teacher_stats = {
-        'total_students': all_students.count(),
-        'total_groups': all_students.values('group').distinct().count(),
-        'total_courses': all_students.values('course').distinct().count(),
-        'active_subscriptions': Subscription.objects.filter(
-            student__in=all_students,
-            status='active'
-        ).count(),
-    }
-    
-    # Генерация отчетов
-    if request.method == 'POST' and 'generate_report' in request.POST:
-        report_form = ReportForm(request.POST)
-        if report_form.is_valid():
-            report = report_form.save(commit=False)
-            report.created_by = profile
-            
-            # Генерация данных отчета в зависимости от типа
-            report_type = report_form.cleaned_data['report_type']
-            report_data = generate_report_data(report_type, all_students)
-            report.data = report_data
-            
-            report.save()
-            messages.success(request, f'Отчет "{report.title}" успешно создан!')
-            return redirect('teacher_reports')
-    
-    # Массовая рассылка email
-    if request.method == 'POST' and 'send_bulk_email' in request.POST:
-        bulk_email_form = BulkEmailForm(request.POST)
-        if bulk_email_form.is_valid():
-            # Здесь будет логика отправки email
-            messages.info(request, 'Функция массовой рассылки находится в разработке')
-            return redirect('teacher_dashboard')
-    
-    # Аналитика
-    if request.method == 'POST' and 'generate_analytics' in request.POST:
-        analytics_form = AnalyticsFilterForm(request.POST)
-        if analytics_form.is_valid():
-            analytics_data = generate_analytics_data(analytics_form.cleaned_data, all_students)
-            return render(request, 'profiles/teacher_dashboard.html', {
-                'profile': profile,
-                'students': all_students,
-                'teacher_stats': teacher_stats,
-                'report_form': report_form,
-                'analytics_form': analytics_form,
-                'bulk_email_form': bulk_email_form,
-                'analytics_data': analytics_data,
-                'active_tab': 'teacher'
-            })
-    
-    return render(request, 'profiles/teacher_dashboard.html', {
-        'profile': profile,
-        'students': all_students,
-        'teacher_stats': teacher_stats,
-        'report_form': report_form,
-        'analytics_form': analytics_form,
-        'bulk_email_form': bulk_email_form,
-        'active_tab': 'teacher'
-    })
-
-# Дополнительные представления для преподавателя
-@login_required
-@teacher_required
-def teacher_reports(request):
-    profile = get_object_or_404(StudentProfile, user=request.user)
-    reports = Report.objects.filter(created_by=profile).order_by('-created_at')
-    
-    return render(request, 'profiles/teacher_reports.html', {
-        'profile': profile,
-        'reports': reports,
-        'active_tab': 'teacher_reports'
-    })
-
-@login_required
-@teacher_required
-def teacher_analytics(request):
-    profile = get_object_or_404(StudentProfile, user=request.user)
-    analytics_form = AnalyticsFilterForm()
-    
-    if request.method == 'POST':
-        analytics_form = AnalyticsFilterForm(request.POST)
-        if analytics_form.is_valid():
-            all_students = profile.get_all_students()
-            analytics_data = generate_analytics_data(analytics_form.cleaned_data, all_students)
-            
-            return render(request, 'profiles/teacher_analytics.html', {
-                'profile': profile,
-                'analytics_form': analytics_form,
-                'analytics_data': analytics_data,
-                'active_tab': 'teacher_analytics'
-            })
-    
-    return render(request, 'profiles/teacher_analytics.html', {
-        'profile': profile,
-        'analytics_form': analytics_form,
-        'active_tab': 'teacher_analytics'
-    })
-
-@login_required
-@teacher_required
-def teacher_announcements(request):
-    profile = get_object_or_404(StudentProfile, user=request.user)
-    announcements = Announcement.objects.filter(created_by=profile).order_by('-created_at')
-    announcement_form = AnnouncementForm()
-    
-    if request.method == 'POST':
-        announcement_form = AnnouncementForm(request.POST)
-        if announcement_form.is_valid():
-            announcement = announcement_form.save(commit=False)
-            announcement.created_by = profile
-            announcement.save()
-            messages.success(request, 'Объявление успешно создано!')
-            return redirect('teacher_announcements')
-    
-    return render(request, 'profiles/teacher_announcements.html', {
-        'profile': profile,
-        'announcements': announcements,
-        'announcement_form': announcement_form,
-        'active_tab': 'teacher_announcements'
-    })
-
-# Вспомогательные функции
-def generate_report_data(report_type, students_queryset):
-    """Генерация данных для отчета"""
-    if report_type == 'subscriptions':
-        return {
-            'total_subscriptions': Subscription.objects.filter(student__in=students_queryset).count(),
-            'active_subscriptions': Subscription.objects.filter(student__in=students_queryset, status='active').count(),
-            'popular_websites': list(Website.objects.annotate(
-                sub_count=Count('subscription', filter=Q(subscription__student__in=students_queryset))
-            ).filter(sub_count__gt=0).order_by('-sub_count').values('name', 'sub_count')[:10]),
-            'subscriptions_by_faculty': list(students_queryset.values('faculty').annotate(
-                count=Count('subscription', filter=Q(subscription__status='active'))
-            )),
-        }
-    elif report_type == 'activity':
-        return {
-            'recent_activity': list(Subscription.objects.filter(
-                student__in=students_queryset
-            ).select_related('student', 'website').order_by('-subscribed_at')[:20].values(
-                'student__user__username', 'website__name', 'subscribed_at'
-            )),
-        }
-    return {}
-
-def generate_analytics_data(form_data, students_queryset):
-    """Генерация аналитических данных"""
-    period = form_data.get('period')
-    report_types = form_data.get('report_type', [])
-    
-    analytics_data = {}
-    
-    if 'subscriptions' in report_types:
-        analytics_data['subscriptions'] = {
-            'total': Subscription.objects.filter(student__in=students_queryset).count(),
-            'active': Subscription.objects.filter(student__in=students_queryset, status='active').count(),
-            'pending': Subscription.objects.filter(student__in=students_queryset, status='pending').count(),
-            'by_faculty': list(students_queryset.values('faculty').annotate(
-                count=Count('subscription')
-            )),
-        }
-    
-    if 'activity' in report_types:
-        analytics_data['activity'] = {
-            'recent_subscriptions': Subscription.objects.filter(
-                student__in=students_queryset,
-                subscribed_at__gte=timezone.now() - timedelta(days=30)
-            ).count(),
-        }
-    
-    return analytics_data
-
-@login_required
-def cancel_subscription(request, subscription_id):
+    """Панель управления для старосты"""
     try:
-        subscription = Subscription.objects.get(
-            id=subscription_id,
-            student__user=request.user
-        )
-        website_name = subscription.website.name
-        subscription.delete()
-        messages.success(request, f'Подписка на {website_name} отменена.')
-    except Subscription.DoesNotExist:
-        messages.error(request, 'Подписка не найдена.')
+        student_profile = StudentProfile.objects.get(user=request.user)
+    except StudentProfile.DoesNotExist:
+        messages.error(request, 'Профиль студента не найден.')
+        return redirect('dashboard')
     
-    return redirect('profile')
+    # Проверяем, является ли пользователь старостой
+    if not student_profile.is_monitor:
+        messages.error(request, 'У вас нет прав для доступа к панели старосты.')
+        return redirect('dashboard')
+    
+    # Проверяем, что у старосты заполнена группа
+    if not student_profile.group:
+        messages.error(request, 'Для доступа к панели старосты необходимо указать группу в вашем профиле.')
+        return redirect('profile')
+    
+    # Получаем статистику
+    students_in_group = student_profile.get_students_in_group()
+    filled_profiles = student_profile.get_filled_profiles()
+    completion_percentage = student_profile.get_completion_percentage()
+    group_activity = student_profile.get_group_activity()
+    group_students = student_profile.get_group_students()
+    
+    # Статистика по подпискам для каждого студента
+    subscription_stats = []
+    for student in group_students:
+        subscriptions_count = Subscription.objects.filter(student=student, is_active=True).count()
+        profile_complete = all([
+            student.student_id is not None and student.student_id != '',
+            student.faculty is not None and student.faculty != '',
+            student.course is not None,
+            student.group is not None and student.group != ''
+        ])
+        subscription_stats.append({
+            'student': student,
+            'subscriptions_count': subscriptions_count,
+            'profile_complete': profile_complete
+        })
+    
+    context = {
+        'student_profile': student_profile,
+        'students_in_group': students_in_group,
+        'filled_profiles': filled_profiles,
+        'completion_percentage': completion_percentage,
+        'group_activity': group_activity,
+        'group_students': group_students,
+        'subscription_stats': subscription_stats,
+        'active_tab': 'monitor'
+    }
+    
+    return render(request, 'profiles/monitor_dashboard.html', context)
+
+@login_required
+def website_access_check(request):
+    """Страница проверки доступа к сайтам"""
+    accessible_websites = get_user_accessible_websites(request.user.username)
+    
+    # Проверяем доступ к конкретному сайту если передан URL
+    site_url = request.GET.get('url', '')
+    specific_access = None
+    if site_url:
+        specific_access = check_website_access(request.user.username, site_url)
+    
+    context = {
+        'accessible_websites': accessible_websites,
+        'specific_access': specific_access,
+        'checked_url': site_url,
+        'active_tab': 'access_check'
+    }
+    
+    return render(request, 'profiles/website_access.html', context)
+
+@login_required
+def ldap_test_tool(request):
+    """Инструмент для тестирования LDAP доступа"""
+    from .ldap_utils import (
+        check_website_access, 
+        get_user_accessible_websites, 
+        get_user_ldap_info,
+        get_user_groups
+    )
+    
+    username = request.user.username
+    user_ldap_info = get_user_ldap_info(username)
+    user_groups = get_user_groups(username)
+    accessible_websites = get_user_accessible_websites(username)
+    
+    # Проверка конкретного сайта
+    test_url = request.GET.get('test_url', '')
+    test_result = None
+    if test_url:
+        test_result = {
+            'url': test_url,
+            'access_granted': check_website_access(username, test_url),
+            'required_groups': [],  # Можно добавить логику для определения требуемых групп
+        }
+    
+    # Популярные сайты для быстрого тестирования
+    popular_sites = [
+        {'name': 'Библиотека', 'url': 'https://library.university.local'},
+        {'name': 'Научный портал', 'url': 'https://research.university.local'},
+        {'name': 'Админка', 'url': 'https://admin.university.local'},
+        {'name': 'Курсы', 'url': 'https://courses.university.local'},
+        {'name': 'Яндекс', 'url': 'https://yandex.ru'},
+        {'name': 'Google', 'url': 'https://google.com'},
+        {'name': 'GitHub', 'url': 'https://github.com'},
+    ]
+    
+    context = {
+        'user_ldap_info': user_ldap_info,
+        'user_groups': user_groups,
+        'accessible_websites': accessible_websites,
+        'test_result': test_result,
+        'popular_sites': popular_sites,
+        'active_tab': 'ldap_test'
+    }
+    
+    return render(request, 'profiles/ldap_test_tool.html', context)
+
+def test_library_page(request):
+    """Тестовая страница библиотеки"""
+    from .ldap_utils import check_website_access
+    
+    # Проверяем доступ через LDAP
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    has_access = check_website_access(request.user.username, 'https://library.identica.local')
+    
+    if not has_access:
+        return render(request, 'profiles/access_denied.html', {
+            'site_name': 'Библиотека университета',
+            'required_groups': ['students', 'staff', 'admins']
+        })
+    
+    return render(request, 'profiles/test_pages/library.html')
+
+def test_research_page(request):
+    """Тестовая страница научного портала"""
+    from .ldap_utils import check_website_access
+    
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    has_access = check_website_access(request.user.username, 'https://research.identica.local')
+    
+    if not has_access:
+        return render(request, 'profiles/access_denied.html', {
+            'site_name': 'Научный портал',
+            'required_groups': ['staff', 'admins', 'monitors']
+        })
+    
+    return render(request, 'profiles/test_pages/research.html')
+
+def test_admin_page(request):
+    """Тестовая страница админки"""
+    from .ldap_utils import check_website_access
+    
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    has_access = check_website_access(request.user.username, 'https://admin.identica.local')
+    
+    if not has_access:
+        return render(request, 'profiles/access_denied.html', {
+            'site_name': 'Административная панель',
+            'required_groups': ['staff', 'admins']
+        })
+    
+    return render(request, 'profiles/test_pages/admin.html')
+
+def test_courses_page(request):
+    """Тестовая страница курсов"""
+    from .ldap_utils import check_website_access
+    
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    has_access = check_website_access(request.user.username, 'https://courses.identica.local')
+    
+    if not has_access:
+        return render(request, 'profiles/access_denied.html', {
+            'site_name': 'Портал курсов',
+            'required_groups': ['students', 'staff', 'admins', 'monitors']
+        })
+    
+    return render(request, 'profiles/test_pages/courses.html')

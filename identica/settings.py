@@ -97,3 +97,15 @@ LOGIN_URL = '/accounts/login/'
 ADMIN_SITE_HEADER = "Identica - Администрирование"
 ADMIN_SITE_TITLE = "Identica Admin"
 ADMIN_INDEX_TITLE = "Панель управления Identica"
+
+# Простые настройки аутентификации
+AUTHENTICATION_BACKENDS = [
+    "profiles.ldap_backend.CustomLDAPBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Группы для разных ролей в приложении (используются в утилитах)
+LDAP_STUDENT_GROUP = "students"
+LDAP_MONITOR_GROUP = "monitors"
+LDAP_STAFF_GROUP = "staff"
+LDAP_ADMIN_GROUP = "admins"

@@ -707,3 +707,15 @@
     </div>
 </div>
 {% endif %}
+<li class="nav-item">
+    <a class="nav-link {% if active_tab == 'access_check' %}active{% endif %}" 
+       href="{% url 'website_access_check' %}">
+        🌐 Проверка доступа
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link {% if active_tab == 'ldap_test' %}active{% endif %}" 
+       href="{% url 'ldap_test_tool' %}">
+        🔐 Тест LDAP
+    </a>
+</li>

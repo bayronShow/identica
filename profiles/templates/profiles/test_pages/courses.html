@@ -1,0 +1,34 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-success">
+            <h4>✅ Доступ разрешен!</h4>
+            <p>Вы успешно прошли проверку LDAP и получили доступ к порталу курсов.</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">🎓 Портал онлайн-курсов</h3>
+            </div>
+            <div class="card-body">
+                <h5>Добро пожаловать в систему обучения!</h5>
+                <p>Доступные курсы:</p>
+                <ul>
+                    <li>Программирование Python</li>
+                    <li>Веб-разработка</li>
+                    <li>Базы данных</li>
+                    <li>Машинное обучение</li>
+                </ul>
+                
+                <div class="mt-4">
+                    <a href="{% url 'ldap_test_tool' %}" class="btn btn-outline-success">
+                        ← Вернуться к тестированию
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
