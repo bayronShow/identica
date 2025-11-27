@@ -117,7 +117,7 @@
                                         Запрошено: {{ subscription.subscribed_at|date:"d.m.Y H:i" }}
                                     </small>
                                 </div>
-                                <form method="post" action="{% url 'cancel_pending_subscription' subscription.id %}" class="ms-2">
+                                 <form method="post" action="{% url 'manage_subscriptions' %}" class="ms-2">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-outline-warning" 
                                             onclick="return confirm('Отменить запрос на подписку {{ subscription.website.name }}?')">
