@@ -1,0 +1,101 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">📊 Панель управления</h2>
+                <p class="text-muted mb-0">С возвращением, {{ user.get_full_name|default:user.username }}!</p>
+            </div>
+            
+            {% if user.is_staff %}
+
+            {% endif %}
+        </div>
+        
+        {% if not profile_complete %}
+            <div class="alert alert-warning alert-dismissible fade show">
+                <strong>📝 Внимание!</strong> Пожалуйста, заполните информацию в вашем профиле для доступа ко всем функциям.
+                <a href="{% url 'profile' %}" class="alert-link">Заполнить профиль</a>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">👤 Информация профиля</h5>
+            </div>
+            <div class="card-body text-center">
+                <!-- Аватарка в дашборде -->
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="Аватар" class="profile-avatar mb-3">
+                {% else %}
+                    <div class="profile-avatar-default mb-3">
+                        👤
+                    </div>
+                {% endif %}
+                <p><strong>🎫 Студенческий билет:</strong> {{ profile.student_id|default:"Не указан" }}</p>
+                <p><strong>🎓 Факультет:</strong> {{ profile.get_faculty_display|default:"Не указан" }}</p>
+                <p><strong>📚 Курс:</strong> {{ profile.get_course_display|default:"Не указан" }}</p>
+                <p><strong>👥 Группа:</strong> {{ profile.group|default:"Не указана" }}</p>
+                <a href="{% url 'profile' %}" class="btn btn-primary mt-3">✏️ Редактировать профиль</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📰 Подписки на сайты</h5>
+            </div>
+            <div class="card-body">
+                {% if subscriptions %}
+                    <p>Вы подписаны на <strong class="text-success">{{ subscriptions.count }}</strong> сайт(ов):</p>
+                    <div class="list-group">
+                        {% for subscription in subscriptions|slice:":5" %}
+                            <div class="list-group-item border-0 mb-2">
+                                <h6 class="mb-1">🌐 {{ subscription.website.name }}</h6>
+                                <small class="text-muted">{{ subscription.website.url }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if subscriptions.count > 5 %}
+                        <p class="mt-2 text-muted">... и еще {{ subscriptions.count|add:"-5" }}</p>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted">📭 У вас нет активных подписок.</p>
+                {% endif %}
+                <a href="{% url 'manage_subscriptions' %}" class="btn btn-success mt-3 w-100">📋 Управление подписками</a>
+            </div>
+        </div>
+        
+        <!-- Ожидающие подтверждения -->
+        {% if pending_subscriptions %}
+        <div class="card mt-3">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">⏳ Ожидают подтверждения</h5>
+            </div>
+            <div class="card-body">
+                <p>Ожидают подтверждения <strong class="text-warning">{{ pending_subscriptions.count }}</strong> подписок:</p>
+                <div class="list-group">
+                    {% for subscription in pending_subscriptions|slice:":3" %}
+                        <div class="list-group-item">
+                            <h6 class="mb-1">{{ subscription.website.name }}</h6>
+                            <small class="text-muted">Ожидает подтверждения администратора</small>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if pending_subscriptions.count > 3 %}
+                    <p class="mt-2 text-muted">... и еще {{ pending_subscriptions.count|add:"-3" }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

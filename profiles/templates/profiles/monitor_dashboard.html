@@ -1,0 +1,143 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">👨‍💼 Панель старосты группы {{ profile.group }}</h2>
+                <p class="text-muted mb-0">Управление студентами и мониторинг активности</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика группы -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4>{{ total_students }}</h4>
+                <small>Студентов в группе</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4>{{ completed_profiles }}</h4>
+                <small>Заполненных профилей</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h4>{{ total_students }}</h4>
+                <small>Всего студентов</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4>85%</h4>
+                <small>Активность группы</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Список студентов группы -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">👥 Студенты группы {{ profile.group }}</h5>
+                <span class="badge bg-primary">{{ students.count }} человек</span>
+            </div>
+            <div class="card-body">
+                {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ФИО</th>
+                                    <th>Студенческий билет</th>
+                                    <th>Роль</th>
+                                    <th>Статус профиля</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ student.user.get_full_name|default:student.user.username }}</strong>
+                                    </td>
+                                    <td>{{ student.student_id|default:"—" }}</td>
+                                    <td>
+                                        {% if student.role == 'monitor' %}
+                                            <span class="badge bg-warning">Староста</span>
+                                        {% elif student.role == 'student' %}
+                                            <span class="badge bg-primary">Студент</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ student.get_role_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if student.student_id and student.faculty and student.course and student.group %}
+                                            <span class="badge bg-success">✅ Заполнен</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">⚠️ Неполный</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">В вашей группе нет других студентов.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковая панель с быстрыми действиями -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">⚡ Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'manage_subscriptions' %}" class="btn btn-outline-success">
+                        📋 Управление подписками
+                    </a>
+                    <a href="{% url 'profile' %}" class="btn btn-outline-info">
+                        ✏️ Редактировать профиль
+                    </a>
+                    <button class="btn btn-outline-primary">
+                        📊 Просмотр статистики
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о группе -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">ℹ️ Информация о группе</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Группа:</strong> {{ profile.group }}</p>
+                <p><strong>Курс:</strong> {{ profile.course }}</p>
+                <p><strong>Факультет:</strong> {{ profile.get_faculty_display }}</p>
+                <p><strong>Староста:</strong> {{ profile.user.get_full_name|default:profile.user.username }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card">
+            <div class="card-body py-5">
+                <h1 class="display-4 mb-4 text-success">🌿 Добро пожаловать в Identica</h1>
+                <p class="lead text-muted">Ваш портал для управления студенческой идентичностью и подписками</p>
+                
+                {% if not user.is_authenticated %}
+                    <div class="mt-5">
+                        <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-3">
+                            🔑 Вход для студентов
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="mt-5">
+                        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg">
+                            📊 Перейти в панель управления
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    /* Дополнительные стили чтобы текст не пересекался с навбаром */
+    .main-content {
+        padding-top: 20px;
+    }
+    
+    .card {
+        margin-top: 30px;
+    }
+    
+    /* Плавная анимация при наведении на заголовок */
+    .display-4 {
+        transition: all 0.3s ease;
+        cursor: default;
+    }
+    
+    .display-4:hover {
+        transform: translateY(-5px);
+        text-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+    }
+</style>
+{% endblock %}

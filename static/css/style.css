@@ -1,0 +1,17 @@
+/* Дополнительные стили для Identica */
+.identica-brand {
+    font-weight: 700;
+    color: #27ae60;
+}
+
+.profile-card {
+    border-left: 4px solid #27ae60;
+}
+
+.subscription-card {
+    border-left: 4px solid #3498db;
+}
+
+.alert-success {
+    border-left: 4px solid #27ae60;
+}

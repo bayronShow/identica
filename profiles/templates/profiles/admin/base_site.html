@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | 🌿 Identica Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}" style="color: white;">
+        🌿 Identica - Администрирование
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+{% endblock %}
+
+{% block footer %}
+<div id="footer">
+    <div class="admin-links">
+        <a href="{% url 'home' %}" target="_blank" class="site-link">🌐 Перейти на сайт</a>
+        <a href="{% url 'admin:index' %}" class="admin-link">⚙️ Админ панель</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Вход в Identica</h4>
+<style>
+    /* Дополнительные стили чтобы текст не пересекался с навбаром */
+    .main-content {
+        padding-top: 20px;
+    }
+    
+    .card {
+        margin-top: 30px;
+    }
+    
+    /* Плавная анимация при наведении на заголовок */
+    .display-4 {
+        transition: all 0.3s ease;
+        cursor: default;
+    }
+    
+    .display-4:hover {
+        transform: translateY(-5px);
+        text-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+    }
+</style>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Пожалуйста, введите правильные имя пользователя и пароль.
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Имя пользователя</label>
+                        <input type="text" name="username" class="form-control" id="username" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Пароль</label>
+                        <input type="password" name="password" class="form-control" id="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Войти</button>
+                </form>
+                
+                <div class="mt-3 text-center">
+                    <small>Нет аккаунта? Обратитесь к администратору.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

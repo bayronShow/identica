@@ -1,0 +1,288 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">📰 Управление подписками</h2>
+                <p class="text-muted mb-0">Выберите сервисы для подписки и управляйте текущими подписками</p>
+            </div>
+            
+            {% if user.is_staff %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <!-- Статус подписок -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h4>{{ subscriptions_active.count }}</h4>
+                        <small>Активных подписок</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h4>{{ subscriptions_pending.count }}</h4>
+                        <small>Ожидают подтверждения</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center">
+                        <h4>{{ websites_available }}</h4>
+                        <small>Доступных сервисов</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма выбора подписок -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">🌐 Доступные сервисы для подписки</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for category, websites in websites_by_category.items %}
+                        <div class="category-section mb-4">
+                            <h6 class="category-title mb-3">
+                                <span class="badge bg-success me-2">{{ websites|length }}</span>
+                                {{ category }}
+                            </h6>
+                            
+                            <div class="row">
+                                {% for website in websites %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="website-card card h-100 {% if website.id in current_subscriptions %}border-success{% endif %}">
+                                            <div class="card-body">
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           name="websites" value="{{ website.id }}" 
+                                                           id="website{{ website.id }}"
+                                                           {% if website.id in current_subscriptions %}checked{% endif %}>
+                                                    <label class="form-check-label fw-bold" for="website{{ website.id }}">
+                                                        {{ website.name }}
+                                                    </label>
+                                                </div>
+                                                
+                                                <p class="text-muted small mb-2">{{ website.description }}</p>
+                                                
+                                                <div class="website-meta">
+                                                    <small class="text-muted">
+                                                        <strong>URL:</strong> 
+                                                        <a href="{{ website.url }}" target="_blank" class="text-decoration-none">
+                                                            {{ website.url }}
+                                                        </a>
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <strong>Длительность:</strong> 
+                                                        {% if website.duration_days == 0 %}
+                                                            <span class="text-success">♾️ Бессрочная</span>
+                                                        {% else %}
+                                                            <span class="text-info">{{ website.duration_days }} дней</span>
+                                                        {% endif %}
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <strong>Подтверждение:</strong> 
+                                                        {% if website.requires_approval %}
+                                                            <span class="text-warning">⏳ Требуется подтверждение админа</span>
+                                                        {% else %}
+                                                            <span class="text-success">⚡ Мгновенная активация</span>
+                                                        {% endif %}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">Нет доступных сервисов для подписки.</p>
+                        </div>
+                    {% endfor %}
+                    
+                    {% if websites_by_category %}
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                                <label class="form-check-label fw-bold" for="selectAll">
+                                    Выбрать все сервисы
+                                </label>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    💾 Сохранить изменения подписок
+                                </button>
+                                <a href="{% url 'profile' %}" class="btn btn-secondary btn-lg">❌ Отмена</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+        
+        <!-- Текущие подписки -->
+{% if subscriptions_active or subscriptions_pending %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">📋 Мои подписки</h5>
+        <small class="text-muted">Истекшие подписки автоматически скрываются из этого списка</small>
+    </div>
+    <div class="card-body">
+        <!-- Активные подписки -->
+        {% if subscriptions_active %}
+        <h6 class="text-success mb-3">
+            ✅ Активные подписки 
+            <span class="badge bg-success">{{ subscriptions_active.count }}</span>
+        </h6>
+        <div class="row">
+            {% for subscription in subscriptions_active %}
+                <div class="col-md-6 mb-3">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h6 class="card-title">🌐 {{ subscription.website.name }}</h6>
+                            <p class="card-text small text-muted mb-2">
+                                {{ subscription.website.description }}
+                            </p>
+                            <div class="subscription-info">
+                                <small class="text-muted">
+                                    <strong>Подписан:</strong> {{ subscription.subscribed_at|date:"d.m.Y" }}
+                                </small>
+                                <br>
+                                {% if subscription.expires_at %}
+                                    <small class="text-muted">
+                                        <strong>Истекает:</strong> 
+                                        <span class="{% if subscription.days_remaining < 7 %}text-danger{% elif subscription.days_remaining < 30 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ subscription.expires_at|date:"d.m.Y" }} 
+                                            (осталось {{ subscription.days_remaining }} дн.)
+                                        </span>
+                                    </small>
+                                {% else %}
+                                    <small class="text-success">
+                                        <strong>Статус:</strong> ♾️ Бессрочная
+                                    </small>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    <strong>Автопродление:</strong> 
+                                    {% if subscription.website.duration_days > 0 %}
+                                        <span class="text-info">🔄 Автоматически истечет</span>
+                                    {% else %}
+                                        <span class="text-success">✅ Бессрочная</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-3">
+            <p class="text-muted">Нет активных подписок</p>
+        </div>
+        {% endif %}
+        
+        <!-- Ожидающие подтверждения -->
+        {% if subscriptions_pending %}
+        <h6 class="text-warning mb-3 mt-4">
+            ⏳ Ожидают подтверждения 
+            <span class="badge bg-warning">{{ subscriptions_pending.count }}</span>
+        </h6>
+        <div class="row">
+            {% for subscription in subscriptions_pending %}
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <h6 class="card-title">🌐 {{ subscription.website.name }}</h6>
+                            <p class="card-text small text-muted mb-2">
+                                {{ subscription.website.description }}
+                            </p>
+                            <div class="subscription-info">
+                                <small class="text-warning">
+                                    <strong>Статус:</strong> Ожидает подтверждения администратора
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <strong>Запрошено:</strong> {{ subscription.subscribed_at|date:"d.m.Y H:i" }}
+                                </small>
+                                <br>
+                                {% if subscription.website.duration_days > 0 %}
+                                    <small class="text-info">
+                                        <strong>Будет активно:</strong> {{ subscription.website.duration_days }} дней после подтверждения
+                                    </small>
+                                {% else %}
+                                    <small class="text-success">
+                                        <strong>Будет активно:</strong> ♾️ Бессрочно после подтверждения
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+    </div>
+</div>
+
+<style>
+    .category-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--primary-light);
+    }
+    
+    .website-card {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+    
+    .website-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+    }
+    
+    .website-card.border-success {
+        background: linear-gradient(135deg, #f8fff8, #f0fff0);
+    }
+    
+    .subscription-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 10px;
+    }
+</style>
+
+<script>
+    // Скрипт для выбора всех чекбоксов
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('input[name="websites"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+</script>
+{% endblock %}

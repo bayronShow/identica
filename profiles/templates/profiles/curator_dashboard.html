@@ -1,0 +1,159 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">🎓 Панель куратора {{ profile.course }} курса</h2>
+                <p class="text-muted mb-0">Управление курсом и коммуникация со студентами</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика курса -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4>{{ total_students }}</h4>
+                <small>Студентов на курсе</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4>{{ groups_count }}</h4>
+                <small>Учебных групп</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h4>{{ active_monitors }}</h4>
+                <small>Активных старост</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4>95%</h4>
+                <small>Активность курса</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Управление ролями -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">👑 Управление ролями</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <small>Функция управления ролями будет доступна в следующем обновлении</small>
+                </div>
+                
+                <div class="mt-3 p-3 bg-light rounded">
+                    <h6>📋 Текущее распределение ролей:</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li>🎓 Студенты: {{ total_students }}</li>
+                        <li>👨‍💼 Старосты: {{ active_monitors }}</li>
+                        <li>🎯 Кураторы: 1</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Создание объявлений -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📢 Создание объявления</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <small>Функция создания объявлений будет доступна в следующем обновлении</small>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary">
+                        📢 Создать объявление для курса
+                    </button>
+                    <button class="btn btn-outline-success">
+                        📧 Массовая рассылка
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрая статистика по группам -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📈 Статистика по группам курса</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Группа</th>
+                                <th>Студентов</th>
+                                <th>Староста</th>
+                                <th>Активность</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students|slice:":5" %}
+                            <tr>
+                                <td><strong>{{ student.group|default:"—" }}</strong></td>
+                                <td>
+                                    {% if student.group %}
+                                        {{ total_students|add:"0"|divisibleby:5|yesno:"5,10,15,20,25" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if student.role == 'monitor' %}
+                                        {{ student.user.get_full_name|default:student.user.username }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-success" style="width: 85%"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">Активна</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    Нет данных о группах
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

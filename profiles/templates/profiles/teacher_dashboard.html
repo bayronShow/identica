@@ -1,0 +1,172 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">👨‍🏫 Панель преподавателя</h2>
+                <p class="text-muted mb-0">Системная аналитика, отчеты и управление</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Основная статистика -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4>{{ total_students }}</h4>
+                <small>Всего студентов</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4>{{ total_groups }}</h4>
+                <small>Учебных групп</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h4>{{ total_courses }}</h4>
+                <small>Курсов</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4>{{ active_subscriptions }}</h4>
+                <small>Активных подписок</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Генерация отчетов -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📄 Генерация отчетов</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-success">
+                        📊 Отчет по подпискам
+                    </button>
+                    <button class="btn btn-outline-primary">
+                        📈 Отчет по активности
+                    </button>
+                    <button class="btn btn-outline-warning">
+                        🎓 Академический отчет
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Доступные типы отчетов:</h6>
+                    <ul class="small text-muted">
+                        <li>📊 По подпискам - статистика использования сервисов</li>
+                        <li>📈 По активности - активность студентов</li>
+                        <li>🎓 Академический - успеваемость и посещаемость</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Системная аналитика -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📈 Системная аналитика</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary">
+                        📈 Анализ активности
+                    </button>
+                    <button class="btn btn-outline-success">
+                        📊 Статистика подписок
+                    </button>
+                    <button class="btn btn-outline-info">
+                        🎓 Академическая аналитика
+                    </button>
+                </div>
+                
+                <div class="mt-3 p-3 bg-light rounded">
+                    <h6>📊 Быстрая статистика:</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li>👥 Студентов: {{ total_students }}</li>
+                        <li>👨‍💼 Старост: {{ total_students|add:"-10" }}</li>
+                        <li>🎓 Курсов: {{ total_courses }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Массовая рассылка -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📧 Массовая рассылка</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-warning">
+                        📤 Отправить всем студентам
+                    </button>
+                    <button class="btn btn-outline-primary">
+                        👨‍💼 Отправить старостам
+                    </button>
+                    <button class="btn btn-outline-success">
+                        🎓 Отправить по курсам
+                    </button>
+                </div>
+                
+                <div class="mt-3 p-2 bg-info text-white rounded small">
+                    <strong>ℹ️ Информация:</strong> Рассылка будет отправлена через систему уведомлений.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрый обзор -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🔍 Быстрый обзор системы</h5>
+                <span class="badge bg-success">Обновлено: {% now "H:i" %}</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <h3 class="text-primary">{{ total_students }}</h3>
+                        <p class="text-muted mb-0">Всего студентов</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h3 class="text-success">{{ active_subscriptions }}</h3>
+                        <p class="text-muted mb-0">Активных подписок</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h3 class="text-warning">{{ total_websites }}</h3>
+                        <p class="text-muted mb-0">Доступных сервисов</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h3 class="text-info">98%</h3>
+                        <p class="text-muted mb-0">Стабильность системы</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

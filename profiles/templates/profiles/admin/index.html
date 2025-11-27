@@ -1,0 +1,147 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root {
+        --primary-color: #27ae60;
+        --primary-dark: #219653;
+        --primary-light: #6fcf97;
+    }
+    
+    /* Зеленая тема для админки */
+    #header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+    }
+    
+    .module h2, .module caption, .inline-group h2 {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+    }
+    
+    #branding h1 a {
+        color: white !important;
+        font-weight: 600;
+    }
+    
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 4px;
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+        background: var(--primary-dark);
+    }
+    
+    /* Ссылки в таблицах */
+    .view-on-site {
+        background: var(--primary-color);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+    }
+    
+    .view-on-site:hover {
+        background: var(--primary-dark);
+        color: white;
+    }
+    
+    /* Футер с ссылками */
+    #footer {
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        padding: 15px 0;
+        margin-top: 30px;
+        text-align: center;
+    }
+    
+    .admin-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+    
+    .site-link, .admin-link {
+        background: var(--primary-color);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .site-link:hover, .admin-link:hover {
+        background: var(--primary-dark);
+        color: white;
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+    
+    /* Кастомные стили для аппсов */
+    .app-student_profiles module {
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .app-profiles module {
+        border-left: 4px solid #3498db;
+    }
+    
+    /* Улучшенные таблицы */
+    #changelist .results {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    #changelist .results th {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    /* Анимации */
+    .module {
+        transition: transform 0.3s ease;
+    }
+    
+    .module:hover {
+        transform: translateY(-2px);
+    }
+</style>
+<div class="admin-dashboard">
+    <div class="welcome-header">
+        <h1>Добро пожаловать, администратор!</h1>
+        <p>Панель управления StudentApp</p>
+    </div>
+    
+    <div class="admin-stats">
+        <div class="stat-card">
+            <h3>Всего пользователей</h3>
+            <div class="stat-number">{{ total_users }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Активные подписки</h3>
+            <div class="stat-number">{{ active_subscriptions }}</div>
+        </div>
+    </div>
+    
+    <div class="quick-actions">
+        <a href="/" class="action-btn" target="_blank">
+            <i class="fas fa-external-link-alt"></i>
+            Открыть сайт
+        </a>
+        <a href="{% url 'admin:password_change' %}" class="action-btn">
+            <i class="fas fa-key"></i>
+            Сменить пароль
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+{% endblock %}

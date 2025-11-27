@@ -1,0 +1,155 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">📋 Генерация отчетов</h2>
+                <p class="text-muted mb-0">Создание детальных отчетов по системе</p>
+            </div>
+            <div>
+                <a href="{% url 'system_analytics' %}" class="btn btn-secondary">
+                    ← Назад к аналитике
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">⚙️ Настройки отчета</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.report_type.label_tag }}
+                                {{ form.report_type }}
+                                <div class="form-text">Выберите тип отчета для генерации</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.start_date.label_tag }}
+                                {{ form.start_date }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.end_date.label_tag }}
+                                {{ form.end_date }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            📊 Сгенерировать отчет
+                        </button>
+                        <a href="{% url 'system_analytics' %}" class="btn btn-secondary btn-lg">❌ Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">📄 Доступные отчеты</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-primary mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">📰 Отчет по подпискам</h6>
+                                <p class="card-text small text-muted">
+                                    Детальная информация по всем подпискам: активные, ожидающие, популярные сайты
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-success mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">🎓 Отчет по студентам</h6>
+                                <p class="card-text small text-muted">
+                                    Полный список студентов с информацией о группах, курсах и активных подписках
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-warning mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">📈 Отчет по активности</h6>
+                                <p class="card-text small text-muted">
+                                    Статистика активности пользователей за выбранный период времени
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-info mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">🎭 Отчет по ролям</h6>
+                                <p class="card-text small text-muted">
+                                    Распределение пользователей по ролям и статистика по каждой роли
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">ℹ️ Информация</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Формат отчетов:</strong> CSV</p>
+                <p><strong>Кодировка:</strong> UTF-8</p>
+                <p><strong>Разделитель:</strong> Запятая</p>
+                
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <strong>💡 Совет:</strong> Отчеты автоматически загружаются в формате CSV, 
+                        который можно открыть в Excel или Google Sheets для дальнейшего анализа.
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">⚡ Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'system_analytics' %}" class="btn btn-outline-primary">
+                        📊 Системная аналитика
+                    </a>
+                    <a href="{% url 'role_management' %}" class="btn btn-outline-success">
+                        🎭 Управление ролями
+                    </a>
+                    <a href="{% url 'bulk_operations' %}" class="btn btn-outline-info">
+                        📧 Массовые операции
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

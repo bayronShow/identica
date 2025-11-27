@@ -1,0 +1,135 @@
+{% extends 'profiles/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-success mb-1">📧 Массовые операции</h2>
+                <p class="text-muted mb-0">Управление группами пользователей</p>
+            </div>
+            <div>
+                <a href="{% url 'system_analytics' %}" class="btn btn-secondary">
+                    ← Назад к аналитике
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">✉️ Массовая рассылка</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ form.subject.label_tag }}
+                        {{ form.subject }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.message.label_tag }}
+                        {{ form.message }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">🎯 Получатели</label>
+                        <div class="border rounded p-3">
+                            {{ form.target_roles.label_tag }}
+                            <div class="mt-2">
+                                {% for checkbox in form.target_roles %}
+                                <div class="form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.target_groups.label_tag }}
+                        {{ form.target_groups }}
+                        <div class="form-text">Укажите группы через запятую (например: ИТ-101, ИТ-102)</div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            📤 Отправить рассылку
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📊 Статистика получателей</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6>По ролям:</h6>
+                    <ul class="list-unstyled">
+                        <li>🎓 Студенты: <strong>{{ students_count }}</strong> пользователей</li>
+                        <li>👑 Старосты: <strong>{{ monitors_count }}</strong> пользователей</li>
+                        <li>🎯 Кураторы: <strong>{{ curators_count }}</strong> пользователей</li>
+                        <li>📚 Преподаватели: <strong>{{ teachers_count }}</strong> пользователей</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Популярные группы:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-secondary">ИТ-101 (25)</span>
+                        <span class="badge bg-secondary">ИТ-102 (22)</span>
+                        <span class="badge bg-secondary">ФИ-201 (18)</span>
+                        <span class="badge bg-secondary">МТ-301 (15)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">⚡ Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-success" onclick="alert('Функция в разработке')">
+                        📋 Экспорт списка email
+                    </button>
+                    <button class="btn btn-outline-info" onclick="alert('Функция в разработке')">
+                        🔄 Массовое изменение ролей
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="alert('Функция в разработке')">
+                        📊 Генерация групповых отчетов
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">ℹ️ Информация</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <small>
+                        <strong>⚠️ Внимание:</strong> Массовая рассылка email в настоящее время находится в разработке. 
+                        Функция будет доступна в следующем обновлении системы.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
